@@ -4,6 +4,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -14,12 +15,15 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.util.Log;
@@ -29,6 +33,10 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
@@ -39,12 +47,15 @@ public class MainActivity extends AppCompatActivity  implements LocationListener
     TextView textLocation, textAddress;
     //camera
     static final int CAPTURE_IMAGE_REQUEST = 1;
-
+    File photoFile = null;
+    Uri photoURI=null;
+    private String mCurrentPhotoPath = "";
 
     // map
     private static final int REQUEST_LOCATION = 1;
     LocationManager locationManager;
     String latitude, longitude;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,26 +77,18 @@ public class MainActivity extends AppCompatActivity  implements LocationListener
         btnCaptureImage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                // startActivityForResult(intent, 0);
-
                 captureImage();
 
                 locationManager=(LocationManager) getSystemService(Context.LOCATION_SERVICE);
-
                 //check gps is enable or not
                 if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)){
-
                     onGPS();
                 }else  {
                     // GPs is already on then
                     getLocation();
-
                 }
             }
         });
-
-
     }
 
     // camera
@@ -94,18 +97,62 @@ public class MainActivity extends AppCompatActivity  implements LocationListener
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[] { Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE }, 0);
         }else {
-        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        startActivityForResult(intent, CAPTURE_IMAGE_REQUEST);
+        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+            if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+                // Create the File where the photo should go
+                try {
+                    photoFile = createImageFile();
+                    displayMessage(getBaseContext(),photoFile.getAbsolutePath());
+                    Log.i("Mayank",photoFile.getAbsolutePath());
 
-
+                    // Continue only if the File was successfully created
+                    if (photoFile != null) {
+                        photoURI = FileProvider.getUriForFile(this,
+                                "e.yunus.cameraapp.fileprovider",photoFile);
+                        takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+                        startActivityForResult(takePictureIntent, CAPTURE_IMAGE_REQUEST);
+                    }
+                } catch (Exception ex) {
+                    // Error occurred while creating the File
+                    displayMessage(getBaseContext(),ex.getMessage().toString());
+                }
+            }else
+            {
+                displayMessage(getBaseContext(),"Nullll");
+            }
         }
+    }
+
+    private File createImageFile() throws IOException {
+        // Create an image file name
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String imageFileName = "JPEG_" + timeStamp + "_";
+        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        File image = File.createTempFile(
+                imageFileName,  /* prefix */
+                ".jpg",         /* suffix */
+                storageDir      /* directory */
+        );
+
+        // Save a file: path for use with ACTION_VIEW intents
+        mCurrentPhotoPath = image.getAbsolutePath();
+        return image;
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        Bundle extras = data.getExtras();
-        Bitmap bitmap = (Bitmap) extras.get("data");
-        imgDisplay.setImageBitmap(bitmap);
+        // Bundle extras = data.getExtras();
+        // Bitmap bitmap = (Bitmap) extras.get("data");
+        // imgDisplay.setImageBitmap(bitmap);
+
+        if (requestCode == CAPTURE_IMAGE_REQUEST && resultCode == RESULT_OK) {
+            Bitmap myBitmap = BitmapFactory.decodeFile(photoFile.getAbsolutePath());
+            imgDisplay.setImageBitmap(myBitmap);
+        }
+        else
+        {
+            displayMessage(getBaseContext(),"Request cancelled or something went wrong.");
+        }
     }
 
     @Override
@@ -125,6 +172,11 @@ public class MainActivity extends AppCompatActivity  implements LocationListener
     {
         Toast.makeText(context,message,Toast.LENGTH_LONG).show();
     }
+
+
+
+
+
 
 
     // location

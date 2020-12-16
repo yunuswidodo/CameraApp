@@ -29,6 +29,7 @@ import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -45,6 +46,8 @@ public class MainActivity extends AppCompatActivity  implements LocationListener
     Button btnCaptureImage;
     ImageView imgDisplay;
     TextView textLocation, textAddress;
+    EditText textPath;
+
     //camera
     static final int CAPTURE_IMAGE_REQUEST = 1;
     File photoFile = null;
@@ -64,7 +67,7 @@ public class MainActivity extends AppCompatActivity  implements LocationListener
 
         btnCaptureImage = findViewById(R.id.btnCapture);
         imgDisplay = findViewById(R.id.ivFoto);
-
+        textPath = findViewById(R.id.tvPath);
 
         // map
         // add permision
@@ -121,6 +124,8 @@ public class MainActivity extends AppCompatActivity  implements LocationListener
                 displayMessage(getBaseContext(),"Nullll");
             }
         }
+
+
     }
 
     private File createImageFile() throws IOException {
@@ -148,11 +153,13 @@ public class MainActivity extends AppCompatActivity  implements LocationListener
         if (requestCode == CAPTURE_IMAGE_REQUEST && resultCode == RESULT_OK) {
             Bitmap myBitmap = BitmapFactory.decodeFile(photoFile.getAbsolutePath());
             imgDisplay.setImageBitmap(myBitmap);
+            textPath.setText(photoFile.getName());
         }
         else
         {
             displayMessage(getBaseContext(),"Request cancelled or something went wrong.");
         }
+
     }
 
     @Override

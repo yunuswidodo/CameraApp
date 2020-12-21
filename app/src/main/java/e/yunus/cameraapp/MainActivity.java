@@ -41,23 +41,17 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
-public class MainActivity extends AppCompatActivity  implements LocationListener{
+public class MainActivity extends AppCompatActivity {
 
     Button btnCaptureImage;
     ImageView imgDisplay;
-    TextView textLocation, textAddress;
-    EditText textPath;
+    TextView textPath;
 
     //camera
     static final int CAPTURE_IMAGE_REQUEST = 1;
     File photoFile = null;
-    Uri photoURI=null;
+    Uri photoURI = null;
     private String mCurrentPhotoPath = "";
-
-    // map
-    private static final int REQUEST_LOCATION = 1;
-    LocationManager locationManager;
-    String latitude, longitude;
 
 
     @Override
@@ -69,59 +63,44 @@ public class MainActivity extends AppCompatActivity  implements LocationListener
         imgDisplay = findViewById(R.id.ivFoto);
         textPath = findViewById(R.id.tvPath);
 
-        // map
-        // add permision
-        ActivityCompat.requestPermissions(this, new String[]
-                {Manifest.permission.ACCESS_FINE_LOCATION},  REQUEST_LOCATION);
-
-        textLocation=findViewById(R.id.tvShowLocation);
-        textAddress=findViewById(R.id.tvAddress);
 
         btnCaptureImage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 captureImage();
-
-                locationManager=(LocationManager) getSystemService(Context.LOCATION_SERVICE);
                 //check gps is enable or not
-                if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)){
-                    onGPS();
-                }else  {
-                    // GPs is already on then
-                    getLocation();
-                }
+
             }
         });
     }
 
     // camera
-    private  void captureImage(){
+    private void captureImage() {
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[] { Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE }, 0);
-        }else {
-        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE}, 0);
+        } else {
+            Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
             if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
                 // Create the File where the photo should go
                 try {
                     photoFile = createImageFile();
-                    displayMessage(getBaseContext(),photoFile.getAbsolutePath());
-                    Log.i("Mayank",photoFile.getAbsolutePath());
+                    displayMessage(getBaseContext(), photoFile.getAbsolutePath());
+                    Log.i("Mayank", photoFile.getAbsolutePath());
 
                     // Continue only if the File was successfully created
                     if (photoFile != null) {
                         photoURI = FileProvider.getUriForFile(this,
-                                "e.yunus.cameraapp.fileprovider",photoFile);
+                                "e.yunus.cameraapp.fileprovider", photoFile);
                         takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
                         startActivityForResult(takePictureIntent, CAPTURE_IMAGE_REQUEST);
                     }
                 } catch (Exception ex) {
                     // Error occurred while creating the File
-                    displayMessage(getBaseContext(),ex.getMessage().toString());
+                    displayMessage(getBaseContext(), ex.getMessage().toString());
                 }
-            }else
-            {
-                displayMessage(getBaseContext(),"Nullll");
+            } else {
+                displayMessage(getBaseContext(), "Nullll");
             }
         }
 
@@ -154,10 +133,8 @@ public class MainActivity extends AppCompatActivity  implements LocationListener
             Bitmap myBitmap = BitmapFactory.decodeFile(photoFile.getAbsolutePath());
             imgDisplay.setImageBitmap(myBitmap);
             textPath.setText(photoFile.getName());
-        }
-        else
-        {
-            displayMessage(getBaseContext(),"Request cancelled or something went wrong.");
+        } else {
+            displayMessage(getBaseContext(), "Request cancelled or something went wrong.");
         }
 
     }
@@ -168,100 +145,52 @@ public class MainActivity extends AppCompatActivity  implements LocationListener
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED
                     && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
                 captureImage();
-            }
-            else {
+            } else {
                 displayMessage(getApplicationContext(), "tidak adapat pekerja jika tanpa permisi");
             }
         }
     }
 
-    private void displayMessage(Context context, String message)
-    {
-        Toast.makeText(context,message,Toast.LENGTH_LONG).show();
+    private void displayMessage(Context context, String message) {
+        Toast.makeText(context, message, Toast.LENGTH_LONG).show();
     }
 
+    public void btnRename(View view) {
+        final AlertDialog.Builder alert = new AlertDialog.Builder(MainActivity.this);
+        View mView = getLayoutInflater().inflate(R.layout.custom_dialog_rename, null);
 
+        final EditText txt_rename =  (EditText)mView.findViewById(R.id.ed_rename);
+        final Button btn_cancel =  (Button) mView.findViewById(R.id.btn_cancel);
+        final Button btn_ok =  (Button) mView.findViewById(R.id.btn_ok);
 
+        txt_rename.setText(photoFile.getName());
+        alert.setView(mView);
 
+        final AlertDialog alertDialog = alert.create();
+        alertDialog.setCanceledOnTouchOutside(false);
 
-
-
-    // location
-        private void getLocation() {
-        // check Permision aggain
-        if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(MainActivity.this,
-                Manifest.permission.ACCESS_COARSE_LOCATION) !=PackageManager.PERMISSION_GRANTED)
-        {
-            ActivityCompat.requestPermissions(this, new String[]
-                    {Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_LOCATION);
-        }
-        else
-        {
-            Location LocationGps= locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-            Location LocationNetwork =  locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-            Location LocationPassive =  locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
-            if (LocationGps != null && LocationNetwork != null &&  LocationPassive != null)
-            {
-                double lat=LocationGps.getLatitude();
-                double longi=LocationGps.getLongitude();
-                latitude=String.valueOf(lat);
-                longitude=String.valueOf(longi);
-                textLocation.setText("your location" + "\n" + "Latitude" + latitude + "\n" + "Longtitude" + longitude);
-            }
-        }
-        // ))
-        try {
-            locationManager = (LocationManager) getApplicationContext().getSystemService(LOCATION_SERVICE);
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,5000,5,MainActivity.this);
-
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-    }
-
-    private void onGPS() {
-        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setMessage("enable Gps ").setCancelable(false).setPositiveButton("yes", new DialogInterface.OnClickListener() {
+        btn_cancel.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(DialogInterface dialog, int which) {
-                startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
-            }
-        }).setNegativeButton("no", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.cancel();
+            public void onClick(View v) {
+                alertDialog.dismiss();
             }
         });
-        final AlertDialog alertDialog = builder.create();
+
+        btn_ok.setOnClickListener(new View.OnClickListener() {
+            @Override
+            // cuma ngerubah yang ini
+            public void onClick(View v) {
+
+                textPath.setText(txt_rename.getText().toString());
+                alertDialog.dismiss();
+
+                // Bitmap myBitmap = BitmapFactory.decodeFile(photoFile.getAbsolutePath());
+            }
+        });
         alertDialog.show();
 
     }
 
-    // implement
-    @Override
-    public void onLocationChanged(Location location) {
-        Toast.makeText(this, ""+location.getLatitude()+","+location.getLongitude(), Toast.LENGTH_SHORT).show();
-        try {
-            Geocoder geocoder = new Geocoder(MainActivity.this, Locale.getDefault());
-            List<Address> addresses = geocoder.getFromLocation(location.getLatitude(),location.getLongitude(),1);
-            String address = addresses.get(0).getAddressLine(0);
 
-            textAddress.setText(address);
 
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-    }
-
-    @Override
-    public void onStatusChanged(String provider, int status, Bundle extras) {
-    }
-
-    @Override
-    public void onProviderEnabled(String provider) {
-    }
-
-    @Override
-    public void onProviderDisabled(String provider) {
-    }
 }
